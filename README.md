@@ -12,7 +12,7 @@ The first thing you need to determine is what electrical interface
 you're going to connect to on your RetroBattlestations. Depending on
 how many signal lines need to be managed will also determine whether
 an ESP32 or an RP2350 is a better fit. If there are more than eight
-lines, we recommend using an RP2350.
+lines, we recommend using an RP2350. An RP2350 can also be directly interfaced to 5V signal lines without a level shifter.
 
 ## Two-Way Communications ##
 
