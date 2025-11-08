@@ -27,7 +27,8 @@ PLATFORM_COMBOS = \
   c64+=commodore \
   atarixe+=atari \
   msxrom+=msx \
-  msxdos+=msx
+  msxdos+=msx \
+  h89+=h89-cpm
 
 include makefiles/toplevel-rules.mk
 
