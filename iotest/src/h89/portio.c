@@ -1,6 +1,7 @@
 #include "portio.h"
 #include <arch/z80.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define IOPORT 0xD0
 #define PORTA IOPORT
@@ -8,10 +9,19 @@
 #define PORTC IOPORT+2
 #define PCTRL IOPORT+3
 
-#define OUTBUF_FULL 0x80 // i8255 wants to send, /OBF, output active low
-#define OUTBUF_ACK  0x40 // ESP32 received the byte, /ACK, input active low
-#define INBUF_FULL  0x20 // i8255 received the byte, IBF, output active high
-#define INBUF_GET   0x10 // ESP32 wants to send, /STB, input active low
+#define PORT_C_DIR  0
+#define PORT_C_OE   1
+#define PORT_C_EN   2
+#define PORT_C_INTR 3
+#define PORT_C_STB  4
+#define PORT_C_IBF  5
+#define PORT_C_ACK  6
+#define PORT_C_OBF  7
+
+#define OUTBUF_FULL (1 << PORT_C_OBF) // i8255 wants to send, /OBF, output active low
+#define OUTBUF_ACK  (1 << PORT_C_ACK) // ESP32 received the byte, /ACK, input active low
+#define INBUF_FULL  (1 << PORT_C_IBF) // i8255 received the byte, IBF, output active high
+#define INBUF_GET   (1 << PORT_C_STB) // ESP32 wants to send, /STB, input active low
 
 #define DATA_DIR    0x01
 #define DATA_EN     0x02
@@ -26,6 +36,9 @@
 #define I8255_G1_MODE_2      0x40
 #define I8255_MODE_ACTIVE    0x80
 
+#define OE_ENABLE  0
+#define OE_DISABLE 1
+
 // 74LVC245 Direction
 enum {
   ESP32_TO_H89 = 0,
@@ -33,14 +46,19 @@ enum {
   NONE_TO_NONE = 2,
 };
 
-#define OE_ENABLE 2
-#define OE_DISABLE 3
-
 // Jiffy Counter
 #define TIKCNT 0x000B    // H89 Jiffy Counter under CP/M.
 
 unsigned char current_dir = 0;
 unsigned char out_enabled = 0;
+
+void i8255_set_level(uint_fast8_t pin, bool level)
+{
+  pin <<= 1;
+  pin |= level;
+  z80_outp(PCTRL, pin);
+  return;
+}
 
 void port_set_direction(unsigned char dir)
 {
@@ -48,12 +66,12 @@ void port_set_direction(unsigned char dir)
        return;
 
     if (dir == NONE_TO_NONE) {
-      z80_outp(PCTRL, OE_DISABLE);
+      i8255_set_level(PORT_C_OE, OE_DISABLE);
       out_enabled = 0;
     }
     else {
       if (!out_enabled) {
-        z80_outp(PCTRL, OE_ENABLE);
+        i8255_set_level(PORT_C_OE, OE_ENABLE);
         out_enabled = 1;
       }
 
