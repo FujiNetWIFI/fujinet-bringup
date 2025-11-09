@@ -22,7 +22,7 @@ void main()
       port_putc(c);
     }
 
-    rlen = port_getbuf(buffer, sizeof(buffer), 60);
+    rlen = port_getbuf(buffer, sizeof(buffer), PORT_TICKS_PER_SECOND);
     if (rlen) {
       printf("count: %u\n", rlen);
 #if 0

@@ -27,8 +27,11 @@
 #define I8255_MODE_ACTIVE    0x80
 
 // 74LVC245 Direction
-#define ESP32_TO_H89 0
-#define H89_TO_ESP32 1
+enum {
+  ESP32_TO_H89 = 0,
+  H89_TO_ESP32 = 1,
+  NONE_TO_NONE = 2,
+};
 
 #define OE_ENABLE 2
 #define OE_DISABLE 3
@@ -37,13 +40,25 @@
 #define TIKCNT 0x000B    // H89 Jiffy Counter under CP/M.
 
 unsigned char current_dir = 0;
+unsigned char out_enabled = 0;
 
 void port_set_direction(unsigned char dir)
 {
-    //if (dir == current_dir)
-    //    return;
+    if (dir == current_dir)
+       return;
 
-    z80_outp(PCTRL,dir);
+    if (dir == NONE_TO_NONE) {
+      z80_outp(PCTRL, OE_DISABLE);
+      out_enabled = 0;
+    }
+    else {
+      if (!out_enabled) {
+        z80_outp(PCTRL, OE_ENABLE);
+        out_enabled = 1;
+      }
+
+      z80_outp(PCTRL,dir);
+    }
 
     // msleep(200);
 
@@ -72,9 +87,8 @@ int port_getc()
   if (z80_inp(PORTC) & INBUF_FULL)
   {
       port_set_direction(H89_TO_ESP32);
-      z80_outp(PCTRL,OE_ENABLE);
       b = z80_inp(PORTA);
-      z80_outp(PCTRL,OE_DISABLE);
+      port_set_direction(NONE_TO_NONE);
   }
 
   return b;
@@ -118,13 +132,11 @@ void port_putc(uint8_t c)
 {
     port_set_direction(H89_TO_ESP32);
 
-    z80_outp(PCTRL,OE_ENABLE);
-
     while (!(z80_inp(PORTC) & OUTBUF_FULL)); // Wait for ready to handle byte
 
     z80_outp(PORTA,c);
 
-    z80_outp(PCTRL,OE_DISABLE);
+    port_set_direction(NONE_TO_NONE);
 
     return;
 }

@@ -11,6 +11,7 @@ PLATFORMS = h89-cpm
 # SRC_DIRS may use the literal %PLATFORM% token.
 # It expands to the chosen PLATFORM plus any of its combos.
 SRC_DIRS = src src/%PLATFORM%
+INCLUDE_DIRS = src/%PLATFORM%
 
 # FUJINET_LIB can be
 # - a version number such as 4.7.6
@@ -28,7 +29,7 @@ PLATFORM_COMBOS = \
   atarixe+=atari \
   msxrom+=msx \
   msxdos+=msx \
-  h89+=h89-cpm
+  h89-cpm+=h89
 
 include makefiles/toplevel-rules.mk
 
