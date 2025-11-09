@@ -104,7 +104,7 @@ int port_getc()
 
   if (z80_inp(PORTC) & INBUF_FULL)
   {
-      port_set_direction(H89_TO_ESP32);
+      port_set_direction(ESP32_TO_H89);
       b = z80_inp(PORTA);
       port_set_direction(NONE_TO_NONE);
   }
