@@ -13,6 +13,19 @@
 #define INBUF_FULL  0x20 // i8255 received the byte, IBF, output active high
 #define INBUF_GET   0x10 // ESP32 wants to send, /STB, input active low
 
+#define DATA_DIR    0x01
+#define DATA_EN     0x02
+#define ESP32_EN    0x04
+
+#define I8255_G2_PORTC_INPUT 0x01
+#define I8255_G2_PORTB_INPUT 0x02
+#define I8255_G2_MODE_1      0x04
+#define I8255_G1_PORTC_INPUT 0x08
+#define I8255_G1_PORTA_INPUT 0x10
+#define I8255_G1_MODE_1      0x20
+#define I8255_G1_MODE_2      0x40
+#define I8255_MODE_ACTIVE    0x80
+
 // 74LVC245 Direction
 #define ESP32_TO_H89 0
 #define H89_TO_ESP32 1
@@ -39,10 +52,10 @@ void port_set_direction(unsigned char dir)
 
 void port_init()
 {
-  z80_outp(PCTRL,0xC0);
-  z80_outp(PORTC,0x06);
-  z80_outp(PORTC,0x02);
-  z80_outp(PORTC,0x06);
+  z80_outp(PCTRL,I8255_MODE_ACTIVE | I8255_G1_MODE_2);
+  z80_outp(PORTC,DATA_EN | ESP32_EN);
+  z80_outp(PORTC,DATA_EN);
+  z80_outp(PORTC,DATA_EN | ESP32_EN);
   msleep(200);
   z80_inp(PORTA); // Flush input
 
