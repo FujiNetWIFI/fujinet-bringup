@@ -3,7 +3,7 @@
 #include <stdio.h>
 #ifdef __WATCOMC__
 #include <conio.h>
-#define getk() getch()
+int getk();
 #else /* ! __WATCOMC__ */
 #include <input.h>
 #endif /* __WATCOMC__ */
@@ -46,3 +46,12 @@ void main()
 
   return;
 }
+
+#ifdef __WATCOMC__
+int getk()
+{
+  if (kbhit())
+    return getch();
+  return 0;
+}
+#endif __WATCOMC__

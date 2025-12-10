@@ -46,18 +46,18 @@ MCR_OUT2        EQU     08h             ; OUT2 (enables interrupts on PC)
 
         .code
 
-        PUBLIC  port_init_
-        PUBLIC  port_getc_
-        PUBLIC  port_getc_timeout_
-        PUBLIC  port_getbuf_
-        PUBLIC  port_putc_
-        PUBLIC  port_putbuf_
+        PUBLIC  _port_init
+        PUBLIC  _port_getc
+        PUBLIC  _port_getc_timeout
+        PUBLIC  _port_getbuf
+        PUBLIC  _port_putc
+        PUBLIC  _port_putbuf
 
 ;-----------------------------------------------------------------------------
 ; void port_init(void)
 ; Initialize the UART for 115200 baud, 8N1
 ;-----------------------------------------------------------------------------
-port_init_      PROC    NEAR
+_port_init      PROC    NEAR
         push    ax
         push    dx
 
@@ -96,14 +96,14 @@ port_init_      PROC    NEAR
         pop     dx
         pop     ax
         ret
-port_init_      ENDP
+_port_init      ENDP
 
 ;-----------------------------------------------------------------------------
 ; int port_getc(void)
 ; Wait for and read one character from the UART
 ; Returns: Character in AX (0-255), or -1 on error
 ;-----------------------------------------------------------------------------
-port_getc_      PROC    NEAR
+_port_getc      PROC    NEAR
         push    dx
 
 getc_wait:
@@ -119,15 +119,15 @@ getc_wait:
 
         pop     dx
         ret
-port_getc_      ENDP
+_port_getc      ENDP
 
 ;-----------------------------------------------------------------------------
-; int port_getc_timeout(uint16_t timeout)
+; int _port_getctimeout(uint16_t timeout)
 ; Wait for a character with timeout in milliseconds
 ; Parameters: timeout in stack (milliseconds)
 ; Returns: Character in AX (0-255), or -1 on timeout
 ;-----------------------------------------------------------------------------
-port_getc_timeout_ PROC NEAR
+_port_getc_timeout PROC NEAR
         push    bp
         mov     bp, sp
         push    bx
@@ -139,7 +139,7 @@ port_getc_timeout_ PROC NEAR
         mov     ax, 40h
         mov     es, ax
         mov     bx, es:[6Ch]            ; Get current tick count
-        
+
         ; Convert timeout from ms to ticks (timeout / 55)
         mov     ax, [bp+4]              ; Get timeout parameter in ms
         mov     cx, 55
@@ -182,7 +182,7 @@ getct_done:
         pop     bx
         pop     bp
         ret
-port_getc_timeout_ ENDP
+_port_getc_timeout ENDP
 
 ;-----------------------------------------------------------------------------
 ; uint16_t port_getbuf(void *buf, uint16_t len, uint16_t timeout)
@@ -190,7 +190,7 @@ port_getc_timeout_ ENDP
 ; Parameters: buf (pointer), len (word), timeout (word in ms)
 ; Returns: Number of characters actually read in AX
 ;-----------------------------------------------------------------------------
-port_getbuf_    PROC    NEAR
+_port_getbuf    PROC    NEAR
         push    bp
         mov     bp, sp
         push    bx
@@ -200,10 +200,10 @@ port_getbuf_    PROC    NEAR
         push    es
 
         mov     di, [bp+4]              ; Get buffer pointer
-        
+
         push    ds
         pop     es                      ; ES = DS for stosb
-        
+
         xor     cx, cx                  ; Count of chars read
 
 getb_read_loop:
@@ -217,7 +217,7 @@ getb_read_loop:
         mov     ds, ax
         mov     bx, ds:[6Ch]            ; Get current tick count
         pop     ds
-        
+
         ; Convert timeout from ms to ticks (timeout / 55)
         mov     ax, [bp+8]              ; Get timeout parameter in ms
         push    dx
@@ -250,7 +250,7 @@ getb_wait_char:
         pop     bx
         cmp     ax, bx                  ; Compare current to end time
         jb      getb_wait_char          ; Continue if not expired
-        
+
         pop     cx                      ; Timeout - return what we have
         jmp     getb_done
 
@@ -272,7 +272,7 @@ getb_done:
         pop     bx
         pop     bp
         ret
-port_getbuf_    ENDP
+_port_getbuf    ENDP
 
 ;-----------------------------------------------------------------------------
 ; int port_putc(uint8_t c)
@@ -280,7 +280,7 @@ port_getbuf_    ENDP
 ; Parameters: c (byte) on stack
 ; Returns: Character sent in AX, or -1 on error
 ;-----------------------------------------------------------------------------
-port_putc_      PROC    NEAR
+_port_putc      PROC    NEAR
         push    bp
         mov     bp, sp
         push    dx
@@ -295,13 +295,13 @@ putc_wait:
         mov     al, [bp+4]              ; Get character parameter
         mov     dx, UART_THR
         out     dx, al
-        
+
         xor     ah, ah                  ; Return character in AX
 
         pop     dx
         pop     bp
         ret
-port_putc_      ENDP
+_port_putc      ENDP
 
 ;-----------------------------------------------------------------------------
 ; uint16_t port_putbuf(void *buf, uint16_t len)
@@ -309,7 +309,7 @@ port_putc_      ENDP
 ; Parameters: buf (pointer), len (word)
 ; Returns: Number of characters sent in AX
 ;-----------------------------------------------------------------------------
-port_putbuf_    PROC    NEAR
+_port_putbuf    PROC    NEAR
         push    bp
         mov     bp, sp
         push    bx
@@ -320,7 +320,7 @@ port_putbuf_    PROC    NEAR
 
         mov     si, [bp+4]              ; Get buffer pointer
         mov     cx, [bp+6]              ; Get length
-        
+
         xor     bx, bx                  ; Count of chars sent
 
 putb_send_loop:
@@ -337,7 +337,7 @@ putb_wait:
         lodsb                           ; Load char from [DS:SI] and increment SI
         mov     dx, UART_THR
         out     dx, al
-        
+
         inc     bx
         jmp     putb_send_loop
 
@@ -351,6 +351,6 @@ putb_done:
         pop     bx
         pop     bp
         ret
-port_putbuf_    ENDP
+_port_putbuf    ENDP
 
         END
