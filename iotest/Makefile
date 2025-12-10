@@ -1,6 +1,7 @@
 PRODUCT = iotest
-#PLATFORMS = msxrom
-PLATFORMS = h89-cpm
+#PLATFORMS += msxrom
+#PLATFORMS += h89-cpm
+PLATFORMS += msdos
 
 # You can run 'make <platform>' to build for a specific platform,
 # or 'make <platform>/<target>' for a platform-specific target.

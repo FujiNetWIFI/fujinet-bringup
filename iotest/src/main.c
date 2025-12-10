@@ -1,7 +1,12 @@
 #include "portio.h"
 #include "hexdump.h"
 #include <stdio.h>
+#ifdef __WATCOMC__
+#include <conio.h>
+#define getk() getch()
+#else /* ! __WATCOMC__ */
 #include <input.h>
+#endif /* __WATCOMC__ */
 
 char buffer[512];
 
