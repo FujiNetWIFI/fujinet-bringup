@@ -193,6 +193,16 @@ _port_getc_timeout ENDP
 ; Read multiple characters into buffer with timeout in milliseconds
 ; Parameters: buf (pointer), len (word), timeout (word in ms)
 ; Returns: Number of characters actually read in AX
+;
+; Register usage:
+;   AX = scratch (UART data, calculations)
+;   BX = timeout in ticks (constant)
+;   CX = remaining characters to read (counts down to 0)
+;   DX = UART port addresses
+;   DI = buffer pointer (auto-incremented by stosb)
+;   SI = end tick count for current character timeout
+;   BP = stack frame pointer
+;   ES = segment 40h (BIOS data area for tick counter)
 ;-----------------------------------------------------------------------------
 _port_getbuf    PROC    NEAR
         push    bp
@@ -201,75 +211,67 @@ _port_getbuf    PROC    NEAR
         push    cx
         push    dx
         push    di
+        push    si
         push    es
 
         mov     di, [bp+4]              ; Get buffer pointer
+        mov     cx, [bp+6]              ; CX = requested length (countdown)
 
-        push    ds
-        pop     es                      ; ES = DS for stosb
+        ; Handle zero length case immediately
+        test    cx, cx
+        jz      getb_done
 
-        xor     cx, cx                  ; Count of chars read
-
-getb_read_loop:
-        cmp     cx, [bp+6]              ; Check if we've read requested length
-        jae     getb_done
-
-        ; Read starting BIOS tick count for this character
-        push    cx
-        push    ds
-        mov     ax, 40h
-        mov     ds, ax
-        mov     bx, ds:[6Ch]            ; Get current tick count
-        pop     ds
-
-        ; Convert timeout from ms to ticks (timeout / 55)
+        ; Convert timeout from ms to ticks once (timeout / 55)
         mov     ax, [bp+8]              ; Get timeout parameter in ms
-        push    dx
-        mov     dx, 0
+        xor     dx, dx
         push    cx
         mov     cx, 55
         div     cx                      ; AX = timeout in ticks
         pop     cx
-        pop     dx
-        add     ax, bx                  ; AX = end tick count
-        mov     bx, ax                  ; BX = end tick count
+        mov     bx, ax                  ; BX = timeout in ticks
+
+        push    cx                      ; Save original length on stack
+
+        ; Set ES to BIOS data segment for tick counter access
+        mov     ax, 40h
+        mov     es, ax
+
+getb_read_loop:
+        ; Get start time for this character
+        mov     si, es:[6Ch]            ; SI = start tick count
+        add     si, bx                  ; SI = end tick count
 
 getb_wait_char:
-        push    bx
         mov     dx, UART_LSR
         in      al, dx
         test    al, LSR_DR
-        pop     bx
         jnz     getb_got_char
 
         ; Check if timeout expired
-        push    bx
-        push    cx
-        push    ds
-        mov     ax, 40h
-        mov     ds, ax
-        mov     ax, ds:[6Ch]            ; Get current tick count
-        pop     ds
-        pop     cx
-        pop     bx
-        cmp     ax, bx                  ; Compare current to end time
+        mov     ax, es:[6Ch]            ; Get current tick count
+        cmp     ax, si                  ; Compare current to end time
         jb      getb_wait_char          ; Continue if not expired
 
-        pop     cx                      ; Timeout - return what we have
+        ; Timeout - return what we have
         jmp     getb_done
 
 getb_got_char:
-        pop     cx
+        push    es
+        push    ds
+        pop     es                      ; Temporarily set ES = DS for stosb
         mov     dx, UART_RBR
         in      al, dx
         stosb                           ; Store char and increment DI
-        inc     cx
-        jmp     getb_read_loop
+        pop     es                      ; Restore ES to 40h
+        dec     cx
+        jnz     getb_read_loop          ; Continue if more chars to read
 
 getb_done:
-        mov     ax, cx                  ; Return count
+        pop     ax                      ; AX = original length
+        sub     ax, cx                  ; AX = chars read (original - remaining)
 
         pop     es
+        pop     si
         pop     di
         pop     dx
         pop     cx
