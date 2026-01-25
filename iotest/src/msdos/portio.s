@@ -256,13 +256,10 @@ getb_wait_char:
         jmp     getb_done
 
 getb_got_char:
-        push    es
-        push    ds
-        pop     es                      ; Temporarily set ES = DS for stosb
         mov     dx, UART_RBR
         in      al, dx
-        stosb                           ; Store char and increment DI
-        pop     es                      ; Restore ES to 40h
+        mov     ds:[di], al             ; Write to DS segment where buffer is
+        inc     di
         dec     cx
         jnz     getb_read_loop          ; Continue if more chars to read
 
