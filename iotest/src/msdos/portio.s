@@ -240,14 +240,23 @@ getb_read_loop:
         ; Get start time for this character
         mov     si, es:[6Ch]            ; SI = start tick count
         add     si, bx                  ; SI = end tick count
+        mov     dx, UART_LSR
+
 
 getb_wait_char:
-        mov     dx, UART_LSR
+	cli
+	mov	ah, 32
+
+getb_skip_timeout:
         in      al, dx
         test    al, LSR_DR
         jnz     getb_got_char
 
+	dec	ah
+	jnz	getb_skip_timeout 	; Don't need to check timeout constantly
+
         ; Check if timeout expired
+	sti
         mov     ax, es:[6Ch]            ; Get current tick count
         cmp     ax, si                  ; Compare current to end time
         jb      getb_wait_char          ; Continue if not expired
@@ -264,6 +273,7 @@ getb_got_char:
         jnz     getb_read_loop          ; Continue if more chars to read
 
 getb_done:
+	sti
         pop     ax                      ; AX = original length
         sub     ax, cx                  ; AX = chars read (original - remaining)
 
