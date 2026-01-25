@@ -15,21 +15,27 @@
         .model  small
         .8086
 
+        .data
+
+; Global variable to store UART base address
+uart_base       DW      3F8h            ; Default to COM1
+
+        .code
+
         ; Baud rate divisor - change this to set baud rate
 BAUD_DIVISOR    EQU     1               ; 115200 baud
 
-        ; 8250 UART Register Offsets
-UART_BASE       EQU     3F8h            ; COM1 base address
-UART_RBR        EQU     UART_BASE+0     ; Receiver Buffer Register (read)
-UART_THR        EQU     UART_BASE+0     ; Transmitter Holding Register (write)
-UART_IER        EQU     UART_BASE+1     ; Interrupt Enable Register
-UART_IIR        EQU     UART_BASE+2     ; Interrupt Identification Register
-UART_LCR        EQU     UART_BASE+3     ; Line Control Register
-UART_MCR        EQU     UART_BASE+4     ; Modem Control Register
-UART_LSR        EQU     UART_BASE+5     ; Line Status Register
-UART_MSR        EQU     UART_BASE+6     ; Modem Status Register
-UART_DLL        EQU     UART_BASE+0     ; Divisor Latch Low (when DLAB=1)
-UART_DLH        EQU     UART_BASE+1     ; Divisor Latch High (when DLAB=1)
+        ; 8250 UART Register Offsets (relative to base)
+UART_RBR_OFF    EQU     0               ; Receiver Buffer Register (read)
+UART_THR_OFF    EQU     0               ; Transmitter Holding Register (write)
+UART_IER_OFF    EQU     1               ; Interrupt Enable Register
+UART_IIR_OFF    EQU     2               ; Interrupt Identification Register
+UART_LCR_OFF    EQU     3               ; Line Control Register
+UART_MCR_OFF    EQU     4               ; Modem Control Register
+UART_LSR_OFF    EQU     5               ; Line Status Register
+UART_MSR_OFF    EQU     6               ; Modem Status Register
+UART_DLL_OFF    EQU     0               ; Divisor Latch Low (when DLAB=1)
+UART_DLH_OFF    EQU     1               ; Divisor Latch High (when DLAB=1)
 
         ; Line Status Register bits
 LSR_DR          EQU     01h             ; Data Ready
@@ -54,47 +60,66 @@ MCR_OUT2        EQU     08h             ; OUT2 (enables interrupts on PC)
         PUBLIC  _port_putbuf
 
 ;-----------------------------------------------------------------------------
-; void port_init(void)
-; Initialize the UART for 115200 baud, 8N1
+; void port_init(uint16_t base, uint16_t divisor)
+; Initialize the UART for specified baud rate, 8N1
+; Parameters: base (UART base port address), divisor (baud rate divisor)
 ;-----------------------------------------------------------------------------
 _port_init      PROC    NEAR
+        push    bp
+        mov     bp, sp
         push    ax
+        push    bx
         push    dx
 
+        ; Save base address to global variable
+        mov     ax, [bp+4]              ; First parameter: base
+        mov     uart_base, ax
+        mov     bx, [bp+6]              ; Second parameter: divisor
+
+        mov     dx, ax                  ; DX = base port address
+
         ; Set DLAB to access divisor latch
-        mov     dx, UART_LCR
+        add     dx, UART_LCR_OFF
         mov     al, LCR_DLAB
         out     dx, al
 
-        ; Set baud rate using BAUD_DIVISOR
-        mov     dx, UART_DLL
-        mov     al, BAUD_DIVISOR AND 0FFh
+        ; Set baud rate using divisor parameter
+        mov     dx, uart_base
+        add     dx, UART_DLL_OFF
+        mov     al, bl                  ; Low byte of divisor
         out     dx, al
-        mov     dx, UART_DLH
-        mov     al, (BAUD_DIVISOR SHR 8) AND 0FFh
+        mov     dx, uart_base
+        add     dx, UART_DLH_OFF
+        mov     al, bh                  ; High byte of divisor
         out     dx, al
 
         ; Set line control: 8N1, clear DLAB
-        mov     dx, UART_LCR
+        mov     dx, uart_base
+        add     dx, UART_LCR_OFF
         mov     al, LCR_8N1
         out     dx, al
 
         ; Enable DTR, RTS, OUT2
-        mov     dx, UART_MCR
+        mov     dx, uart_base
+        add     dx, UART_MCR_OFF
         mov     al, MCR_DTR OR MCR_RTS OR MCR_OUT2
         out     dx, al
 
         ; Disable interrupts
-        mov     dx, UART_IER
+        mov     dx, uart_base
+        add     dx, UART_IER_OFF
         xor     al, al
         out     dx, al
 
         ; Clear any pending data
-        mov     dx, UART_RBR
+        mov     dx, uart_base
+        add     dx, UART_RBR_OFF
         in      al, dx
 
         pop     dx
+        pop     bx
         pop     ax
+        pop     bp
         ret
 _port_init      ENDP
 
@@ -106,13 +131,15 @@ _port_init      ENDP
 _port_getc      PROC    NEAR
         push    dx
 
-        mov     dx, UART_LSR
+        mov     dx, uart_base
+        add     dx, UART_LSR_OFF
         in      al, dx
         test    al, LSR_DR              ; Check if data ready
         jz      getc_no_data
 
         ; Read the character
-        mov     dx, UART_RBR
+        mov     dx, uart_base
+        add     dx, UART_RBR_OFF
         in      al, dx
         xor     ah, ah                  ; Zero extend to word
         jmp     getc_done
@@ -126,7 +153,7 @@ getc_done:
 _port_getc      ENDP
 
 ;-----------------------------------------------------------------------------
-; int _port_getctimeout(uint16_t timeout)
+; int port_getc_timeout(uint16_t timeout)
 ; Wait for a character with timeout in milliseconds
 ; Parameters: timeout in stack (milliseconds)
 ; Returns: Character in AX (0-255), or -1 on timeout
@@ -154,7 +181,8 @@ _port_getc_timeout PROC NEAR
 
 getct_check:
         push    cx
-        mov     dx, UART_LSR
+        mov     dx, uart_base
+        add     dx, UART_LSR_OFF
         in      al, dx
         test    al, LSR_DR              ; Check if data ready
         pop     cx
@@ -175,7 +203,8 @@ getct_check:
 
 getct_got_char:
         ; Read the character
-        mov     dx, UART_RBR
+        mov     dx, uart_base
+        add     dx, UART_RBR_OFF
         in      al, dx
         xor     ah, ah                  ; Zero extend to word
 
@@ -240,8 +269,8 @@ getb_read_loop:
         ; Get start time for this character
         mov     si, es:[6Ch]            ; SI = start tick count
         add     si, bx                  ; SI = end tick count
-        mov     dx, UART_LSR
-
+        mov     dx, uart_base
+        add     dx, UART_LSR_OFF
 
 getb_wait_char:
 	cli
@@ -253,7 +282,7 @@ getb_skip_timeout:
         jnz     getb_got_char
 
 	dec	ah
-	jnz	getb_skip_timeout 	; Don't need to check timeout constantly
+	jnz	getb_skip_timeout	; Don't need to check timeout constantly
 
         ; Check if timeout expired
 	sti
@@ -265,7 +294,8 @@ getb_skip_timeout:
         jmp     getb_done
 
 getb_got_char:
-        mov     dx, UART_RBR
+        mov     dx, uart_base
+        add     dx, UART_RBR_OFF
         in      al, dx
         mov     ds:[di], al             ; Write to DS segment where buffer is
         inc     di
@@ -299,14 +329,16 @@ _port_putc      PROC    NEAR
         push    dx
 
 putc_wait:
-        mov     dx, UART_LSR
+        mov     dx, uart_base
+        add     dx, UART_LSR_OFF
         in      al, dx
         test    al, LSR_THRE            ; Check if transmitter ready
         jz      putc_wait
 
         ; Send the character
         mov     al, [bp+4]              ; Get character parameter
-        mov     dx, UART_THR
+        mov     dx, uart_base
+        add     dx, UART_THR_OFF
         out     dx, al
 
         xor     ah, ah                  ; Return character in AX
@@ -332,30 +364,31 @@ _port_putbuf    PROC    NEAR
         push    ds
 
         mov     si, [bp+4]              ; Get buffer pointer
-        mov     cx, [bp+6]              ; Get length
-
-        xor     bx, bx                  ; Count of chars sent
+        mov     cx, [bp+6]              ; CX = length (countdown)
+        mov     bx, cx                  ; BX = original length
 
 putb_send_loop:
-        cmp     bx, cx                  ; Check if done
-        jae     putb_done
+        test    cx, cx                  ; Check if count reached zero
+        jz      putb_done
 
 putb_wait:
-        mov     dx, UART_LSR
+        mov     dx, uart_base
+        add     dx, UART_LSR_OFF
         in      al, dx
         test    al, LSR_THRE            ; Check if transmitter ready
         jz      putb_wait
 
         ; Send character
         lodsb                           ; Load char from [DS:SI] and increment SI
-        mov     dx, UART_THR
+        mov     dx, uart_base
+        add     dx, UART_THR_OFF
         out     dx, al
 
-        inc     bx
+        dec     cx
         jmp     putb_send_loop
 
 putb_done:
-        mov     ax, bx                  ; Return count
+        mov     ax, bx                  ; Return original length (all sent)
 
         pop     ds
         pop     si

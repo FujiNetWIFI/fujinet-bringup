@@ -1,6 +1,8 @@
 #include <stdint.h>
 
-extern void cdecl port_init();
+#define PORT_INIT() port_init(0x3F8, 1)
+
+extern void cdecl port_init(uint16_t base, uint16_t divisor);
 
 extern int cdecl port_getc();
 extern int cdecl port_getc_timeout(uint16_t timeout);

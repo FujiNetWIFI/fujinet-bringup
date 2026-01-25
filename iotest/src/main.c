@@ -17,7 +17,7 @@ void main()
   unsigned int rlen, idx;
 
 
-  port_init();
+  PORT_INIT();
 
   printf("Waiting for data\n");
   while (1) {
@@ -54,4 +54,4 @@ int getk()
     return getch();
   return 0;
 }
-#endif __WATCOMC__
+#endif /* __WATCOMC__ */

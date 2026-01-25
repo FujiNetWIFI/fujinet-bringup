@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define port_init() ;
+#define PORT_INIT()
 
 extern int __FASTCALL__ port_getc();
 extern int __FASTCALL__ port_getc_timeout(uint16_t timeout);
