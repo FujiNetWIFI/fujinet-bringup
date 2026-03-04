@@ -1,25 +1,33 @@
 #include "portio.h"
 #include "hexdump.h"
+#ifndef _CMOC_VERSION_
 #include <stdio.h>
+#endif /* _CMOC_VERSION_ */
 #ifdef __WATCOMC__
 #include <conio.h>
 int getk();
 #else /* ! __WATCOMC__ */
+#ifndef _CMOC_VERSION_
 #include <input.h>
+#else /* _CMOC_VERSION_ */
+#define getk() inkey()
+#endif /* ! _CMOC_VERSION_ */
 #endif /* __WATCOMC__ */
 
 char buffer[512];
 
-void main()
+int main()
 {
   int v;
-  unsigned char c;
+  uint8_t c;
   unsigned int rlen, idx;
 
 
   PORT_INIT();
 
   printf("Waiting for data\n");
+  port_putbuf("Send me data!\r\n", 15);
+
   while (1) {
     c = getk();
     if (c) {
@@ -44,7 +52,7 @@ void main()
       printf("timeout\n");
   }
 
-  return;
+  return 0;
 }
 
 #ifdef __WATCOMC__
