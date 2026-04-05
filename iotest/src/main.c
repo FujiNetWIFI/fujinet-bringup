@@ -14,7 +14,7 @@ int getk();
 #endif /* ! _CMOC_VERSION_ */
 #endif /* __WATCOMC__ */
 
-char buffer[512];
+uint8_t buffer[512];
 
 int main()
 {
@@ -32,17 +32,21 @@ int main()
     c = getk();
     if (c) {
       printf("Key $%02X\n", c);
-      port_putc(c);
+      if (c == '@')
+        port_putbuf("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123\r\n", 32);
+      else
+        port_putc(c);
+      continue;
     }
 
     rlen = port_getbuf(buffer, sizeof(buffer), PORT_TICKS_PER_SECOND);
     if (rlen) {
-      printf("count: %u\n", rlen);
-#if 0
+#if 1
       for (idx = 0; idx < rlen; idx++)
         printf("$%02X ", buffer[idx]);
       printf("\n");
 #endif
+      printf("count: %u\n", rlen);
       if (rlen <= 16)
         hexdump(buffer, rlen);
       printf("sending back\n");
