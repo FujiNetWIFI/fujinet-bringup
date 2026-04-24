@@ -1,6 +1,6 @@
 PRODUCT = iotest
-#PLATFORMS += msxrom
-#PLATFORMS += h89-cpm
+PLATFORMS += msxrom
+PLATFORMS += h89-cpm
 PLATFORMS += msdos
 PLATFORMS += coco
 

@@ -1,5 +1,7 @@
 #include <stdint.h>
 
+#define PORT_INIT() port_init()
+
 extern void port_init();
 
 extern int port_getc();
