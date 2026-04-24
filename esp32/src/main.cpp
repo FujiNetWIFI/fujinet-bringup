@@ -32,6 +32,8 @@ extern "C" void app_main(void)
   uart_driver_install(UART_NUM_0, 256, 0, 0, NULL, 0);
   uart_param_config(UART_NUM_0, &uart_config);
 
+  portio_init();
+
   uint8_t data[1];
 
   while (1) {

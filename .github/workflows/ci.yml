@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+
+jobs:
+  build-iotest:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - h89-cpm
+
+    container:
+      image: fozztexx/defoogi:1.4.5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build
+        run: make -C iotest ${{ matrix.platform }}/r2r
+
+      - name: Upload artifact for ${{ matrix.platform }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: iotest-${{ matrix.platform }}
+          path: iotest/r2r/${{ matrix.platform }}/**
+
+  build-esp32:
+    runs-on: ubuntu-latest
+
+    container:
+      image: fozztexx/defoogi:1.4.5
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build esp32 firmware
+        run: make -C esp32
+
+      - name: Upload esp32 firmware artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: esp32-firmware
+          path: esp32/.pio/build/**/*.bin
+
+  store:
+    runs-on: ubuntu-latest
+    needs: [build-iotest, build-esp32]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v6
+        with:
+          path: build-output
+
+      - name: Upload combined build to workflow artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: all-builds-${{ github.sha }}
+          path: build-output/**
+          retention-days: 90
