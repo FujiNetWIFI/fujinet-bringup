@@ -35,6 +35,7 @@ extern "C" void app_main(void)
   portio_init();
 
   uint8_t data[1];
+  int c;
 
   while (1) {
     size_t avail = 0;
@@ -46,8 +47,9 @@ extern "C" void app_main(void)
     }
 
     if (bus_available()) {
-      data[0] = port_getc();
-      if (data[0] != 0xff) {
+      c = port_getc();
+      if (c != -1) {
+          data[0] = c;
           uart_write_bytes(UART_NUM_0, (const char*)data, 1);
       }
     }
