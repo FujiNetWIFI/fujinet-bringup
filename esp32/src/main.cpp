@@ -9,7 +9,7 @@
 
 #define BAUD 115200
 
-static const char *TAG = "CONSOLE_ECHO";
+//static const char *TAG = "CONSOLE_ECHO";
 
 extern "C" void app_main(void)
 {
@@ -26,7 +26,12 @@ extern "C" void app_main(void)
     .parity = UART_PARITY_DISABLE,
     .stop_bits = UART_STOP_BITS_1,
     .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    .rx_flow_ctrl_thresh = 122,
     .source_clk = UART_SCLK_DEFAULT,
+    .flags = {
+        .allow_pd = 0,
+        .backup_before_sleep = 0,
+    }
   };
 
   uart_driver_install(UART_NUM_0, 256, 0, 0, NULL, 0);
