@@ -1,5 +1,6 @@
 #include <driver/gpio.h>
 #include <esp_timer.h>
+#include <esp_rom_sys.h>
 
 #define DIGI_HIGH 1
 #define DIGI_LOW 0
@@ -69,7 +70,7 @@ void portio_init()
  */
 int bus_available()
 {
-    return gpio_get_level(OBF);
+    return gpio_get_level(OBF) == DIGI_LOW;
 }
 
 /**
@@ -86,10 +87,11 @@ int port_getc()
     }
 
     // Fail if nothing waiting.
-    if (bus_available())
+    if (!bus_available())
         return -1;
 
     gpio_set_level(ACK,DIGI_LOW);
+    esp_rom_delay_us(1);
 
     val  = gpio_get_level(D0);
     val |= gpio_get_level(D1) << 1;
@@ -112,9 +114,9 @@ int port_getc()
  */
 int port_getc_timeout(uint16_t t)
 {
-    uint64_t ut = t * 1000;
+    uint64_t end = esp_timer_get_time() + t * 1000;
 
-    while (esp_timer_get_time() < esp_timer_get_time() + ut)
+    while (esp_timer_get_time() < end)
     {
         int c = port_getc();
         if (c > -1)
@@ -152,7 +154,8 @@ uint16_t port_getbuf(void *buf, uint16_t len, uint16_t timeout)
 int port_putc(uint8_t c)
 {
     // Wait for IBF to be low.
-    while(gpio_get_level(IBF) == DIGI_HIGH);
+    while (gpio_get_level(IBF) == DIGI_HIGH)
+        ;
 
     // Set data bits
     gpio_set_level(D7,c & 0x80 ? DIGI_HIGH : DIGI_LOW);
@@ -168,9 +171,10 @@ int port_putc(uint8_t c)
     gpio_set_level(STB,DIGI_LOW);
 
     // Wait for IBF to indicate that 8255 has accepted byte
-    while(gpio_get_level(IBF) == DIGI_LOW);
+    while (gpio_get_level(IBF) == DIGI_LOW)
+        ;
 
-    // Desert strobe
+    // Deassert strobe
     gpio_set_level(STB,DIGI_HIGH);
 
     return c;

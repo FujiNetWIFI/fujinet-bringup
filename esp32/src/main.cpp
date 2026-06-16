@@ -7,7 +7,7 @@
 #include <esp_log.h>
 #include <driver/uart.h>
 
-#define BAUD 460800
+#define BAUD 115200
 
 static const char *TAG = "CONSOLE_ECHO";
 
@@ -47,7 +47,9 @@ extern "C" void app_main(void)
 
     if (bus_available()) {
       data[0] = port_getc();
-      uart_write_bytes(UART_NUM_0, (const char*)data, 1);
+      if (data[0] != 0xff) {
+          uart_write_bytes(UART_NUM_0, (const char*)data, 1);
+      }
     }
 
     vTaskDelay(pdMS_TO_TICKS(10));
