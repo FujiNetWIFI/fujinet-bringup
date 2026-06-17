@@ -1,6 +1,7 @@
 PRODUCT = iotest
 PLATFORMS += msxrom
 PLATFORMS += h89-cpm
+PLATFORMS += h89-hdos
 PLATFORMS += msdos
 PLATFORMS += coco
 
@@ -31,7 +32,8 @@ PLATFORM_COMBOS = \
   atarixe+=atari \
   msxrom+=msx \
   msxdos+=msx \
-  h89-cpm+=h89
+  h89-cpm+=h89 \
+  h89-hdos+=h89
 
 include makefiles/toplevel-rules.mk
 
