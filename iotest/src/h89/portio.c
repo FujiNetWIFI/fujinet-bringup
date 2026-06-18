@@ -47,7 +47,12 @@ enum {
 };
 
 // Jiffy Counter
+#ifdef HDOS
+#define TIKCNT 0x201B    // H89 Jiffy Counter under HDOS.
+#endif
+#ifdef CPM
 #define TIKCNT 0x000B    // H89 Jiffy Counter under CP/M.
+#endif
 
 unsigned char current_dir = 0;
 unsigned char out_enabled = 0;
