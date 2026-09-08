@@ -153,8 +153,8 @@ uint16_t port_getbuf(void *buf, uint16_t len, uint16_t timeout)
  */
 int port_putc(uint8_t c)
 {
-    // Wait for IBF to be low.
-    while (gpio_get_level(IBF) == DIGI_HIGH)
+    // Wait for IBF and DIR to be low.
+    while ((gpio_get_level(IBF) == DIGI_HIGH) || (gpio_get_level(_DIR) == DIGI_HIGH))
         ;
 
     // Set data bits
