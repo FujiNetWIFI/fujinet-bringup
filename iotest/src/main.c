@@ -13,6 +13,7 @@ int getk();
 #define getk() inkey()
 #endif /* ! _CMOC_VERSION_ */
 #endif /* __WATCOMC__ */
+#include <stdlib.h>
 
 uint8_t buffer[512];
 
@@ -34,6 +35,8 @@ int main()
       printf("Key $%02X\n", c);
       if (c == '@')
         port_putbuf("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123\r\n", 32);
+      else if (c == 0x03) // Support Control-C key to exit program
+          exit(1);
       else
         port_putc(c);
       continue;

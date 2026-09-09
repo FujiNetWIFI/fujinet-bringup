@@ -54,7 +54,7 @@ enum {
 #define TIKCNT 0x000B    // H89 Jiffy Counter under CP/M.
 #endif
 
-unsigned char current_dir = 0;
+unsigned char current_dir = NONE_TO_NONE;
 unsigned char out_enabled = 0;
 
 void i8255_set_level(uint_fast8_t pin, bool level)
@@ -100,6 +100,8 @@ void port_init()
   z80_outp(PCTRL,0x00); // SET DIR
   z80_outp(PCTRL,OE_DISABLE); // SET OE
 
+  port_set_direction(ESP32_TO_H89);
+
   return;
 }
 
@@ -111,7 +113,6 @@ int port_getc()
   {
       port_set_direction(ESP32_TO_H89);
       b = z80_inp(PORTA);
-      port_set_direction(NONE_TO_NONE);
   }
 
   return b;
@@ -159,7 +160,9 @@ void port_putc(uint8_t c)
 
     z80_outp(PORTA,c);
 
-    port_set_direction(NONE_TO_NONE);
+    while (!(z80_inp(PORTC) & OUTBUF_FULL)); // Wait for byte accepted
+
+    port_set_direction(ESP32_TO_H89);
 
     return;
 }
