@@ -27,6 +27,9 @@ extern "C" void app_main(void)
     .stop_bits = UART_STOP_BITS_1,
     .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
     .rx_flow_ctrl_thresh = 122,
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
+    .rx_glitch_filt_thresh = 0,
+#endif
     .source_clk = UART_SCLK_DEFAULT,
     .flags = {
         .allow_pd = 0,
