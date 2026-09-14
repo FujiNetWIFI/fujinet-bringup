@@ -104,7 +104,7 @@ def main():
     if recv_data:
       now = time.time()
       delta = now - last_recv
-      if delta > 1 / cps * 10:
+      if delta > 1 / cps * 65:
         print(f"Received {len(recv_data)} of {len(sent_data)}  CPS:",
               len(recv_data) / (now - first_recv))
         mismatch = [idx for idx, (a, b) in enumerate(zip(sent_data, recv_data)) if a != b]
