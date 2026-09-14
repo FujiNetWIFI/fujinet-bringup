@@ -42,23 +42,21 @@ extern "C" void app_main(void)
 
   portio_init();
 
-  uint8_t data[1];
-  int c;
+  uint8_t data[512];
 
   while (1) {
     size_t avail = 0;
     uart_get_buffered_data_len(UART_NUM_0, &avail);
     if (avail) {
-      int len = uart_read_bytes(UART_NUM_0, data, 1, 0);
+      int len = uart_read_bytes(UART_NUM_0, data, (avail > sizeof(data) ? sizeof(data) : avail), 0);
       if (len > 0)
-        port_putc(data[0]);
+        port_putbuf(data, len);
     }
 
     if (bus_available()) {
-      c = port_getc();
-      if (c != -1) {
-          data[0] = c;
-          uart_write_bytes(UART_NUM_0, (const char*)data, 1);
+      avail = port_getbuf(data, sizeof(data), 1);
+      if (avail) {
+        uart_write_bytes(UART_NUM_0, (const char*)data, avail);
       }
     }
 
